@@ -6,7 +6,7 @@ use_github_action(url="https://github.com/posit-dev/r-shinylive/blob/actions-v1/
 
 
 brandarar <- tibble(
-  brandari = c(
+  brandari = {c(
   "Hvernig veiðir maður flugfisk?
 —Nú, í loftnet.
 En á hvað veiðir maður saltfisk?
@@ -256,5 +256,5 @@ tré,“ sagði annar þeirra.
 „Við vinnum þrír saman í hóp og
 sá sem lætur trén í holuna er
 veikur í dag.“"
-  )
+  )}
 )
