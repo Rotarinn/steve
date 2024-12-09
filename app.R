@@ -3,6 +3,11 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(reactable)
+library(readxl)
+library(writexl)
+library(janitor)
+
+source("undirb.R")
 
 # Workaround for Chromium Issue 468227
 downloadButton <- function(...) {
@@ -14,9 +19,13 @@ downloadButton <- function(...) {
 # Viðmót sett upp
 ui <- fluidPage(
   
-  titlePanel("Skráarvinnsla orkusvið"),
+  titlePanel("Orkustöff"),
   
   br(),
+  
+  h2("Brandari"),
+  
+  textOutput("brandari"),
   
   fileInput("upload", "Hlaða upp skrá"),
   
@@ -31,16 +40,15 @@ ui <- fluidPage(
 server <- function(input, output) {
   gogn <- reactive({
     req(input$upload)
-    zip_skjal <- input$upload$datapath
+    skjal <- read_excel(input$upload)
     
-    skjol <- unzip(zip_skjal, list = TRUE)[[1]]
-    
-    tafla <- map(
-      skjol,
-      \(x) read_delim(unz(zip_skjal, x), delim = ";", col_types = "cn") |> 
-        mutate(Dagsetning = dmy_hm(Dagsetning) - hours(1), maelir = str_split_i(x, "-", 4)),
-      .progress = "vinnur gögn"
-    ) |> bind_rows() |> rename("dags" = 1, "notkun" = 2)
+    tafla <- skjal |> 
+      pivot_longer(
+        !1:10,
+        names_to = "dags",
+        values_to = "magn"
+      ) |> 
+      mutate(dags = excel_numeric_to_date(as.numeric(dags)))
     
     tafla
   })
@@ -49,17 +57,21 @@ server <- function(input, output) {
     reactable(
       head(gogn(), n = 10L),
       columns = list(
-        dags = colDef(format = colFormat(datetime = TRUE, hour12 = FALSE))
+        dags = colDef(format = colFormat(date = TRUE))
       )
     )
   })
   
+  output$brandari <- renderText(
+    slice_sample(brandarar, n = 1)
+  )
+  
   output$download <- downloadHandler(
     filename = function() {
-      paste0(str_split_i(input$upload, "\\.", 1), ".csv")
+      paste0(input$upload, ".csv")
     },
     content = function(file) {
-      write_csv(gogn(), file)
+      write_xlsx(gogn(), file)
     }
   )
 }
